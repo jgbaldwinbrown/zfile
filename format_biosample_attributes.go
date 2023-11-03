@@ -1,66 +1,52 @@
-package main
+package csvh
 
 import (
 	"log"
-	"flag"
 	"encoding/csv"
 	"fmt"
 	"io"
-	"os"
-	"bufio"
 )
 
-func deferE(dst *error, e error) {
+func Handle0(format string) func(e error) error {
+	return func(e error) error {
+		return fmt.Errorf(format, e)
+	}
+}
+
+func Handle1[T any](format string) func(e error) (T, error) {
+	return func(e error) (t T, err error) {
+		fmt.Errorf(format, e)
+		return
+	}
+}
+
+func Handle2[T, U any](format string) func(e error) (T, U, error) {
+	return func(e error) (t T, u U, err error) {
+		fmt.Errorf(format, e)
+		return
+	}
+}
+
+func Handle3[T, U, V any](format string) func(e error) (T, U, V, error) {
+	return func(e error) (t T, u U, v V, err error) {
+		fmt.Errorf(format, e)
+		return
+	}
+}
+
+func DeferE(dst *error, e error) {
 	if *dst == nil {
 		*dst = e
 	}
 }
 
-func OldInCols() map[string]int {
-	names := []string {
-		"Experiment",
-		"Multiplex Group",
-		"ID",
-		"Sample Name",
-		"Organism",
-		"Bird_Breed",
-		"Individual",
-		"Replicate",
-		"Sample Name 2",
-		"Time",
-		"Treatment",
-	}
+func NamesToCols(names []string) map[string]int {
+	m := make(map[string]int, len(names))
 
-	m := map[string]int{}
 	for i, name := range names {
 		m[name] = i
 	}
-	log.Printf("Names: %v\n", names)
-	return m
-}
 
-func InCols() map[string]int {
-	names := []string {
-		"Unnamed: 0",
-		"Experiment",
-		"Multiplex Group",
-		"ID",
-		"Sample Name",
-		"Organism",
-		"Bird_Breed",
-		"Individual_x",
-		"Replicate",
-		"Sample Name.1",
-		"Time",
-		"Treatment",
-		"Individual_y",
-	}
-
-	m := map[string]int{}
-	for i, name := range names {
-		m[name] = i
-	}
-	log.Printf("Names: %v\n", names)
 	return m
 }
 
@@ -72,76 +58,54 @@ func Extend[T any](in []T, n int) []T {
 	return in
 }
 
-func OutHeader() []string {
-	return []string {
-		"*sample_name",
-		"sample_title",
-		"bioproject_accession",
-		"*organism",
-		"isolate",
-		"breed",
-		"host",
-		"isolation_source",
-		"*collection_date",
-		"*geo_loc_name",
-		"*tissue",
-		"biomaterial_provider",
-		"dev_stage",
-		"specimen_voucher",
-		"host breed",
-		"host treatment",
-		"months since start of experiment",
-		"experimental replicate",
-		"pooled?",
-	}
-}
-
-func OutCols() map[string]int {
-	names := OutHeader()
-
-	m := map[string]int{}
-	for i, name := range names {
-		m[name] = i
-	}
-	log.Printf("OutCols: %v\n", m)
-	return m
-}
-
-func BuildMetadata(w io.Writer, r io.Reader) (err error) {
-	h := func(e error) error {
-		return fmt.Errorf("BuildMetadata: %w", e)
-	}
-
+func CsvIn(r io.Reader) *csv.Reader {
 	cr := csv.NewReader(r)
 	cr.Comma = '\t'
 	cr.FieldsPerRecord = -1
 	cr.ReuseRecord = true
 	cr.LazyQuotes = true
+	return cr
+}
 
+func CsvOut(w io.Writer) *csv.Writer {
 	cw := csv.NewWriter(w)
+	cw.Comma = '\t'
+	return cw
+}
+
+func buildMetadataExample(w io.Writer, r io.Reader) (err error) {
+	h := Handle0("BuildMetadata: %w")
+
+	cr := CsvIn(r)
+
+	cw := CsvOut(w)
 	cw.Comma = '\t'
 	defer func() {
 		cw.Flush()
-		deferE(&err, cw.Error())
+		DeferE(&err, cw.Error())
 	}()
 
 	var outl []string
 
-	icol := InCols()
-	ocol := OutCols()
-
-	if _, e := cr.Read(); e != nil {
+	l, e := cr.Read()
+	if e != nil {
 		return h(e)
 	}
-	if e := cw.Write(OutHeader()); e != nil {
+	icol := NamesToCols(l)
+
+	ohead := []string{"Apple", "Banana", "Carrot"}
+	ocol := NamesToCols(ohead)
+	if e := cw.Write(ohead); e != nil {
 		return h(e)
 	}
 
-	for l, e := cr.Read(); e != io.EOF; l, e = cr.Read() {
-		if e != nil {
+	for {
+		l, e := cr.Read()
+		if e == io.EOF {
+			break
+		} else if e != nil {
 			return h(e)
-		}
-		if len(l) < len(icol) {
+		} else if len(l) < len(icol) {
 			log.Printf("len(l) %v < len(icol) %v; l: %v\n", len(l), len(icol), l)
 			continue
 		}
@@ -186,45 +150,3 @@ func BuildMetadata(w io.Writer, r io.Reader) (err error) {
 
 	return nil
 }
-
-func main() {
-	identpathp := flag.String("i", "", "identities file")
-	flag.Parse()
-
-	var r io.Reader = os.Stdin
-	if (*identpathp != "") {
-		ir, e := os.Open(*identpathp)
-		if e != nil {
-			log.Fatal(e)
-		}
-		defer func() {
-			if e := ir.Close(); e != nil {
-				log.Fatal(e)
-			}
-		}()
-		r = ir
-	}
-
-	br := bufio.NewReader(r)
-
-	w := bufio.NewWriter(os.Stdout)
-	defer w.Flush()
-
-	e := BuildMetadata(w, br)
-	if e != nil {
-		log.Fatal(e)
-	}
-}
-
-// *sample_name	sample_title	bioproject_accession	*organism	isolate	breed	host	isolation_source	*collection_date	*geo_loc_name	*tissue	age	altitude	biomaterial_provider	collected_by	depth	dev_stage	env_broad_scale	host_tissue_sampled	identified_by	lat_lon	sex	specimen_voucher	temp	description
-// 
-// Experiment	Multiplex Group	ID	Sample Name	Organism	Bird_Breed	Individual	Replicate	Sample Name	Time	Treatment
-// NA	1	15515X1	EMW1	Pigeon louse	feral	EMW1	1	EMW1	0	yes
-// NA	1	15515X2	EMW2	Pigeon louse	feral	EMW2	1	EMW2	0	yes
-// NA	1	15515X3	EMW3	Pigeon louse	feral	EMW3	1	EMW3	0	yes
-// NA	1	15515X4	EMW5	Pigeon louse	feral	EMW5	1	EMW5	0	yes
-// NA	1	15515X5	EMW6	Pigeon louse	feral	EMW6	1	EMW6	0	yes
-// NA	1	15515X6	EMW7	Pigeon louse	feral	EMW7	1	EMW7	0	yes
-// NA	1	15515X7	EMW9	Pigeon louse	feral	EMW9	1	EMW9	0	yes
-// NA	1	15515X8	EMW10	Pigeon louse	feral	EMW10	1	EMW10	0	yes
-// NA	1	15515X9	EMW11	Pigeon louse	feral	EMW11	1	EMW11	0	yes
