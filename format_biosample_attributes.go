@@ -15,21 +15,21 @@ func Handle0(format string) func(e error) error {
 
 func Handle1[T any](format string) func(e error) (T, error) {
 	return func(e error) (t T, err error) {
-		fmt.Errorf(format, e)
+		err = fmt.Errorf(format, e)
 		return
 	}
 }
 
 func Handle2[T, U any](format string) func(e error) (T, U, error) {
 	return func(e error) (t T, u U, err error) {
-		fmt.Errorf(format, e)
+		err = fmt.Errorf(format, e)
 		return
 	}
 }
 
 func Handle3[T, U, V any](format string) func(e error) (T, U, V, error) {
 	return func(e error) (t T, u U, v V, err error) {
-		fmt.Errorf(format, e)
+		err = fmt.Errorf(format, e)
 		return
 	}
 }
