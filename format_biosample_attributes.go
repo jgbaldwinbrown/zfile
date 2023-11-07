@@ -34,6 +34,15 @@ func Handle3[T, U, V any](format string) func(e error) (T, U, V, error) {
 	}
 }
 
+func HandleWrap(format string) func(e error) error {
+	return func(e error) error {
+		if e != nil {
+			return fmt.Errorf(format, e)
+		}
+		return nil
+	}
+}
+
 func DeferE(dst *error, e error) {
 	if *dst == nil {
 		*dst = e
