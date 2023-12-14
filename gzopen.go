@@ -6,11 +6,14 @@ import (
 	"io"
 	"compress/gzip"
 	"regexp"
+	"bufio"
 )
 
 type GzReadCloser struct {
 	rc io.ReadCloser
-	*gzip.Reader
+	br1 *bufio.Reader
+	gr *gzip.Reader
+	*bufio.Reader
 }
 
 func GzOpen(path string) (*GzReadCloser, error) {
@@ -18,22 +21,26 @@ func GzOpen(path string) (*GzReadCloser, error) {
 		return nil, fmt.Errorf("GzOpen: %w", e)
 	}
 	g := new(GzReadCloser)
-	var e error
 
+	var e error
 	if g.rc, e = os.Open(path); e != nil {
 		return h(e)
 	}
 
-	if g.Reader, e = gzip.NewReader(g.rc); e != nil {
+	g.br1 = bufio.NewReader(g.rc)
+
+	if g.gr, e = gzip.NewReader(g.br1); e != nil {
 		g.rc.Close()
 		return h(e)
 	}
+
+	g.Reader = bufio.NewReader(g.gr)
 
 	return g, nil
 }
 
 func (g *GzReadCloser) Close() error {
-	err := g.Reader.Close()
+	err := g.gr.Close()
 	if e := g.rc.Close(); err == nil {
 		err = e
 	}
