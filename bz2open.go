@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"regexp"
 	"compress/bzip2"
 )
 
@@ -40,3 +41,5 @@ func (g *Bzip2ReadCloser) Close() error {
 	}
 	return err
 }
+
+var bzip2Re = regexp.MustCompile(`\.bz2$`)
