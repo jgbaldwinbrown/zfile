@@ -1,4 +1,4 @@
-package csvh
+package zfile
 
 import (
 	"bufio"

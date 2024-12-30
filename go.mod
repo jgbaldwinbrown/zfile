@@ -1,4 +1,4 @@
-module github.com/jgbaldwinbrown/csvh
+module github.com/jgbaldwinbrown/zfile
 
 go 1.20
 
