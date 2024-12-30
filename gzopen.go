@@ -16,7 +16,7 @@ type GzReadCloser struct {
 	*bufio.Reader
 }
 
-func GzOpen(path string) (*GzReadCloser, error) {
+func OpenGz(path string) (*GzReadCloser, error) {
 	h := func(e error) (*GzReadCloser, error) {
 		return nil, fmt.Errorf("GzOpen: %w", e)
 	}
@@ -49,9 +49,12 @@ func (g *GzReadCloser) Close() error {
 
 var gzRe = regexp.MustCompile(`\.gz$`)
 
-func OpenMaybeGz(path string) (io.ReadCloser, error) {
+func Open(path string) (io.ReadCloser, error) {
 	if gzRe.MatchString(path) {
-		return GzOpen(path)
+		return OpenGz(path)
+	}
+	if xzRe.MatchString(path) {
+		return OpenXz(path)
 	}
 	return os.Open(path)
 }

@@ -15,7 +15,7 @@ type XzWriteCloser struct {
 	*bufio.Writer
 }
 
-func XzCreate(path string) (*XzWriteCloser, error) {
+func CreateXz(path string) (*XzWriteCloser, error) {
 	h := func(e error) (*XzWriteCloser, error) {
 		return nil, fmt.Errorf("XzCreate: %w", e)
 	}
@@ -50,21 +50,4 @@ func (g *XzWriteCloser) Close() error {
 		err = e
 	}
 	return err
-}
-
-func CreateMaybeXz(path string) (io.WriteCloser, error) {
-	if xzRe.MatchString(path) {
-		return XzCreate(path)
-	}
-	return os.Create(path)
-}
-
-func CreateMaybeGzXz(path string) (io.WriteCloser, error) {
-	if gzRe.MatchString(path) {
-		return GzCreate(path)
-	}
-	if xzRe.MatchString(path) {
-		return XzCreate(path)
-	}
-	return os.Create(path)
 }

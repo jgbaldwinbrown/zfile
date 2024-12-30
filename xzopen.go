@@ -16,7 +16,7 @@ type XzReadCloser struct {
 	*bufio.Reader
 }
 
-func XzOpen(path string) (*XzReadCloser, error) {
+func OpenXz(path string) (*XzReadCloser, error) {
 	h := func(e error) (*XzReadCloser, error) {
 		return nil, fmt.Errorf("XzOpen: %w", e)
 	}
@@ -47,20 +47,3 @@ func (g *XzReadCloser) Close() error {
 }
 
 var xzRe = regexp.MustCompile(`\.xz$`)
-
-func OpenMaybeXz(path string) (io.ReadCloser, error) {
-	if xzRe.MatchString(path) {
-		return XzOpen(path)
-	}
-	return os.Open(path)
-}
-
-func OpenMaybeGzXz(path string) (io.ReadCloser, error) {
-	if gzRe.MatchString(path) {
-		return GzOpen(path)
-	}
-	if xzRe.MatchString(path) {
-		return XzOpen(path)
-	}
-	return os.Open(path)
-}

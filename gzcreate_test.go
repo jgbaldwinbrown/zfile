@@ -65,7 +65,7 @@ func BenchmarkEarlyBuffered(b *testing.B) {
 }
 
 func BenchmarkReal(b *testing.B) {
-	w, e := GzCreate("/dev/null")
+	w, e := CreateGz("/dev/null")
 	if e != nil {
 		panic(e)
 	}

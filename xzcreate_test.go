@@ -54,7 +54,7 @@ func BenchmarkEarlyBufferedXz(b *testing.B) {
 }
 
 func BenchmarkRealXz(b *testing.B) {
-	w, e := XzCreate("/dev/null")
+	w, e := CreateXz("/dev/null")
 	if e != nil {
 		panic(e)
 	}
