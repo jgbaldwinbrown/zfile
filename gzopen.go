@@ -56,5 +56,12 @@ func Open(path string) (io.ReadCloser, error) {
 	if xzRe.MatchString(path) {
 		return OpenXz(path)
 	}
+	if bzip2Re.MatchString(path) {
+		return OpenBzip2(path)
+	}
 	return os.Open(path)
+}
+
+func SupportedOpen() []string {
+	return []string{".gz", ".xz", ".bz2"}
 }
