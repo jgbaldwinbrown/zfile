@@ -54,7 +54,7 @@ func Create(path string) (io.WriteCloser, error) {
 	if xzRe.MatchString(path) {
 		return CreateXz(path)
 	}
-	return os.Create(path)
+	return CreateUncompressed(path)
 }
 
 func SupportedCreate() []string {

@@ -59,7 +59,7 @@ func Open(path string) (io.ReadCloser, error) {
 	if bzip2Re.MatchString(path) {
 		return OpenBzip2(path)
 	}
-	return os.Open(path)
+	return OpenUncompressed(path)
 }
 
 func SupportedOpen() []string {
